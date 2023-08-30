@@ -15,25 +15,25 @@ vehicle_records = {}
 def register_vehicle():
     # Implementation for registering a vehicle
 
-    RegNo = input("\nEnter the vehicle registration number: \n")
-    OwnerName = input("\n Enter owner name: \n")
-    TimeIN = time.strftime("%Y-%m-%d %H:%M:%S")
-    vehicle_records[RegNo] = {"owner": OwnerName, "time_in": TimeIN}  # Fix here
+    registration_number = input("\nEnter the vehicle registration number: \n")
+    RegName = input("\n Enter owner name: \n")
+    time_in = time.strftime("%Y-%m-%d %H:%M:%S")
+    vehicle_records[registration_number] = {"owner": RegName, "time_in": time_in}  # Fix here
     print("\nVehicle registered successfully.\n")
     time.sleep(3)
 
 def release_vehicle():
     # Implementation for releasing a vehicle
 
-    RegNo = input("\nEnter the vehicle registration number: \n")
-    TimeOUT = time.strftime("%Y-%m-%d %H:%M:%S")
+    registration_number = input("\nEnter the vehicle registration number: \n")
+    time_out = time.strftime("%Y-%m-%d %H:%M:%S")
     
-    if RegNo in vehicle_records:
-        TimeIn = vehicle_records[RegNo]["time_in"]
-        time_difference = time.mktime(time.strptime(TimeOUT, "%Y-%m-%d %H:%M:%S")) - time.mktime(time.strptime(TimeIn, "%Y-%m-%d %H:%M:%S"))
-        parking_fee = time_difference * 0.5
-        vehicle_records[RegNo]["time_out"] = TimeOUT
-        vehicle_records[RegNo]["parking_fee"] = parking_fee
+    if registration_number in vehicle_records:
+        time_in = vehicle_records[registration_number]["time_in"]
+        time_difference = time.mktime(time.strptime(time_out, "%Y-%m-%d %H:%M:%S")) - time.mktime(time.strptime(time_in, "%Y-%m-%d %H:%M:%S"))
+        parking_fee = time_difference * 0.03333333
+        vehicle_records[registration_number]["time_out"] = time_out
+        vehicle_records[registration_number]["parking_fee"] = parking_fee
         print("\nParking fee: KES {}.".format(parking_fee))
         time.sleep(3)
     else:
@@ -43,17 +43,17 @@ def release_vehicle():
 def check_vehicle():
     # Implementation for checking vehicle details
 
-    RegNo = input("\nEnter the vehicle registration number: \n")
+    registration_number = input("\nEnter the vehicle registration number: \n")
     
-    if RegNo in vehicle_records:
-        vehicle_details = vehicle_records[RegNo]
+    if registration_number in vehicle_records:
+        vehicle_details = vehicle_records[registration_number]
         print("\nVehicle found.\n")
-        print("VEHICLE DETAILS:")
-        print("  Vehicle Owner: {}".format(vehicle_details["owner"]))  # Fix here
-        print("  Registration Number: {}".format(RegNo))
-        print("  Time In: {}".format(vehicle_details["time_in"]))
-        print("  Time Out: {}".format(vehicle_details.get("time_out", "Not released yet")))
-        print("  Parking Fee: (In KES) {}".format(vehicle_details.get("Parking_Fee", "Not calculated yet\n")))
+        print("Details:")
+        print("  Vehicle owner: {}".format(vehicle_details["owner"]))  # Fix here
+        print("  Registration number: {}".format(registration_number))
+        print("  Time in: {}".format(vehicle_details["time_in"]))
+        print("  Time out: {}".format(vehicle_details.get("time_out", "Not released yet")))
+        print("  Parking fee: KES {}".format(vehicle_details.get("parking_fee", "Not calculated yet\n")))
         time.sleep(3)
     else:
         print("\nVehicle not found.\n")
@@ -63,12 +63,12 @@ def display_registered_vehicles():
     # Implementation for displaying registered vehicles
 
     print("Registered Vehicles:")
-    for RegNo, vehicle_details in vehicle_records.items():
-        print("Registration Number: {}".format(RegNo))
-        print("  Vehicle Owner: {}".format(vehicle_details["owner"]))  # Fix here
-        print("  Time In: {}".format(vehicle_details["time_in"]))
-        print("  Time Out: {}".format(vehicle_details.get("time_out", "Not Released Yet")))
-        print("  Parking Fee: (In KES) {}".format(vehicle_details.get("parking_fee", "Not Calculated Yet")))
+    for registration_number, vehicle_details in vehicle_records.items():
+        print("Registration number: {}".format(registration_number))
+        print("  Vehicle owner: {}".format(vehicle_details["owner"]))  # Fix here
+        print("  Time in: {}".format(vehicle_details["time_in"]))
+        print("  Time out: {}".format(vehicle_details.get("time_out", "Not released yet")))
+        print("  Parking fee: KES {}".format(vehicle_details.get("parking_fee", "Not calculated yet")))
         print("-" * 20)
 
 def main():
@@ -87,16 +87,15 @@ def main():
             release_vehicle()
         elif option == "3":
             check_vehicle()
-            time.sleep(3)
         elif option == "4":
             display_registered_vehicles()
-            time.sleep(20)
+            time.sleep(5)
         elif option == "5":
             print("\nExiting...\n")
             time.sleep(2)
             break
         else:
-            print("Invalid Option :(")
+            print("Invalid option :(")
 
     db_cursor.close()
     db_connection.close()
