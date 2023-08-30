@@ -29,9 +29,9 @@ def release_vehicle():
     TimeOUT = time.strftime("%Y-%m-%d %H:%M:%S")
     
     if RegNo in vehicle_records:
-        time_in = vehicle_records[RegNo]["time_in"]
-        time_difference = time.mktime(time.strptime(TimeOUT, "%Y-%m-%d %H:%M:%S")) - time.mktime(time.strptime(time_in, "%Y-%m-%d %H:%M:%S"))
-        parking_fee = time_difference * 0.03333333
+        TimeIn = vehicle_records[RegNo]["time_in"]
+        time_difference = time.mktime(time.strptime(TimeOUT, "%Y-%m-%d %H:%M:%S")) - time.mktime(time.strptime(TimeIn, "%Y-%m-%d %H:%M:%S"))
+        parking_fee = time_difference * 0.5
         vehicle_records[RegNo]["time_out"] = TimeOUT
         vehicle_records[RegNo]["parking_fee"] = parking_fee
         print("\nParking fee: KES {}.".format(parking_fee))
