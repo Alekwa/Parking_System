@@ -16,9 +16,9 @@ def register_vehicle():
     # Implementation for registering a vehicle
 
     registration_number = input("\nEnter the vehicle registration number: \n")
-    RegName = input("\n Enter owner name: \n")
+    OwnerName = input("\n Enter owner name: \n")
     time_in = time.strftime("%Y-%m-%d %H:%M:%S")
-    vehicle_records[registration_number] = {"owner": RegName, "time_in": time_in}  # Fix here
+    vehicle_records[registration_number] = {"owner": OwnerName, "time_in": time_in}  # Fix here
     print("\nVehicle registered successfully.\n")
     time.sleep(3)
 
