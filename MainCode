@@ -1,14 +1,21 @@
 import time
 import mysql.connector
+from mysql.connector import Error
+
 
 # Establish a connection to the MySQL database
-db_connection = mysql.connector.connect(
-    host="localhost",
-    user="Alekwa",
-    password="root",
-    database="school_project"
-)
-db_cursor = db_connection.cursor()
+try:
+    db_connection = mysql.connector.connect(
+        host="localhost",
+        user="Alekwa",
+        password="root",
+        database="school_project"
+    )
+    db_cursor = db_connection.cursor()
+
+except Error as e:
+    print("Error connecting to the database:", e)
+    exit(1)
 
 vehicle_records = {}
 
@@ -18,6 +25,17 @@ def register_vehicle():
     registration_number = input("\nEnter the vehicle registration number: \n")
     RegName = input("\n Enter owner name: \n")
     time_in = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    try:
+        query = "INSERT INTO vehicle_records (registration_number, owner, time_in) VALUES (%s, %s, %s)"
+        values = (registration_number, RegName, time_in)
+        db_cursor.execute(query, values)
+        db_connection.commit()
+        print("\nVehicle registered successfully.\n")
+
+    except Error as e:
+        print("Error registering vehicle:", e)
+
     vehicle_records[registration_number] = {"owner": RegName, "time_in": time_in}  # Fix here
     print("\nVehicle registered successfully.\n")
     time.sleep(3)
@@ -27,18 +45,43 @@ def release_vehicle():
 
     registration_number = input("\nEnter the vehicle registration number: \n")
     time_out = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    try:
+        query = "UPDATE vehicle_records SET time_out = %s WHERE registration_number = %s"
+        values = (time_out, registration_number)
+        db_cursor.execute(query, values)
+        db_connection.commit()
+        print("\nVehicle release registered successfully.\n")
+
+    except Error as e:
+        print("Error registering release of vehicle:", e)
+
     
     if registration_number in vehicle_records:
         time_in = vehicle_records[registration_number]["time_in"]
         time_difference = time.mktime(time.strptime(time_out, "%Y-%m-%d %H:%M:%S")) - time.mktime(time.strptime(time_in, "%Y-%m-%d %H:%M:%S"))
         parking_fee = time_difference * 1.0
+
         vehicle_records[registration_number]["time_out"] = time_out
         vehicle_records[registration_number]["parking_fee"] = parking_fee
         print("\nParking fee: KES {}.".format(parking_fee))
+
+        try:
+            query = "UPDATE vehicle_records SET parking_fee = %s WHERE registration_number = %s"
+            values = (parking_fee, registration_number)
+            db_cursor.execute(query, values)
+            db_connection.commit()
+            print("\nVehicle release registered successfully.\n")
+
+        except Error as e:
+            print("Error registering release of vehicle:", e)
+
         time.sleep(3)
+
     else:
         print("\nVehicle not found.\n")
         time.sleep(3)
+
 
 def check_vehicle():
     # Implementation for checking vehicle details
