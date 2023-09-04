@@ -1,118 +1,157 @@
 import time
 import mysql.connector
-from mysql.connector import Error
+import datetime
 
+# Establish a connection to the MySQL database(s)
 
-# Establish a connection to the MySQL database
-try:
-    db_connection = mysql.connector.connect(
-        host="localhost",
-        user="Alekwa",
-        password="root",
-        database="school_project"
-    )
-    db_cursor = db_connection.cursor()
-
-except Error as e:
-    print("Error connecting to the database:", e)
-    exit(1)
+db_connection = mysql.connector.connect(
+    host="localhost",
+    user="Alekwa",
+    password="root",
+    database="school_project"
+)
+db_cursor = db_connection.cursor()
 
 vehicle_records = {}
 
 def register_vehicle():
-    # Implementation for registering a vehicle
-
     registration_number = input("\nEnter the vehicle registration number: \n")
-    RegName = input("\n Enter owner name: \n")
+    owner_name = input("\nEnter the name of the Car owner: \n")
     time_in = time.strftime("%Y-%m-%d %H:%M:%S")
-
-    try:
-        query = "INSERT INTO vehicle_records (registration_number, owner, time_in) VALUES (%s, %s, %s)"
-        values = (registration_number, RegName, time_in)
-        db_cursor.execute(query, values)
-        db_connection.commit()
-        print("\nVehicle registered successfully.\n")
-
-    except Error as e:
-        print("Error registering vehicle:", e)
-
-    vehicle_records[registration_number] = {"owner": RegName, "time_in": time_in}  # Fix here
+    vehicle_records[registration_number] = {"time_in": time_in, "owner_name": owner_name}
     print("\nVehicle registered successfully.\n")
     time.sleep(3)
 
-def release_vehicle():
-    # Implementation for releasing a vehicle
-
-    registration_number = input("\nEnter the vehicle registration number: \n")
-    time_out = time.strftime("%Y-%m-%d %H:%M:%S")
-
+    # Insert into Customers table
     try:
-        query = "UPDATE vehicle_records SET time_out = %s WHERE registration_number = %s"
-        values = (time_out, registration_number)
+        query = "INSERT INTO Customers (OwnerName) VALUES (%s)"
+        values = (owner_name,)
         db_cursor.execute(query, values)
         db_connection.commit()
-        print("\nVehicle release registered successfully.\n")
+    except mysql.connector.Error as e:
+        print("MySQL Error:", e)
+        db_connection.rollback()
 
-    except Error as e:
-        print("Error registering release of vehicle:", e)
+    # Insert into ParkingRecords table
+    try:
+        query = "INSERT INTO ParkingRecords (RegistrationNumber, CustomerID, TimeIn) VALUES (%s, LAST_INSERT_ID(), %s)"
+        values = (registration_number, time_in)
+        db_cursor.execute(query, values)
+        db_connection.commit()
+        print("\nVehicle registered successfully.\n")
+    except mysql.connector.Error as e:
+        print("MySQL Error:", e)
+        db_connection.rollback()
 
+def release_vehicle():
+    registration_number = input("\nEnter the vehicle registration number: \n")
+    time_out = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    if registration_number in vehicle_records:
-        time_in = vehicle_records[registration_number]["time_in"]
-        time_difference = time.mktime(time.strptime(time_out, "%Y-%m-%d %H:%M:%S")) - time.mktime(time.strptime(time_in, "%Y-%m-%d %H:%M:%S"))
-        parking_fee = time_difference * 1.0
-
-        vehicle_records[registration_number]["time_out"] = time_out
-        vehicle_records[registration_number]["parking_fee"] = parking_fee
-        print("\nParking fee: KES {}.".format(parking_fee))
-
+    # Check if the vehicle exists and calculate the parking fee
+    query = "SELECT CustomerID, TimeIn FROM ParkingRecords WHERE RegistrationNumber = %s"
+    values = (registration_number,)
+    
+    # Reconnect the cursor if it's disconnected
+    if not db_connection.is_connected():
+        db_connection.reconnect()
+    
+    db_cursor.execute(query, values)
+    record = db_cursor.fetchone()
+    
+    if record:
+        customer_id, time_in = record
+        time_difference = (datetime.datetime.strptime(time_out, "%Y-%m-%d %H:%M:%S") - time_in).total_seconds()
+        parking_fee = time_difference * 1
+        
+        # Update ParkingRecords
         try:
-            query = "UPDATE vehicle_records SET parking_fee = %s WHERE registration_number = %s"
-            values = (parking_fee, registration_number)
+            query = "UPDATE ParkingRecords SET TimeOut = %s, ParkingFee = %s WHERE RegistrationNumber = %s"
+            values = (time_out, parking_fee, registration_number)
             db_cursor.execute(query, values)
             db_connection.commit()
-            print("\nVehicle release registered successfully.\n")
-
-        except Error as e:
-            print("Error registering release of vehicle:", e)
-
-        time.sleep(3)
-
+            print("\nParking fee: KES {}.".format(parking_fee))
+        except mysql.connector.Error as e:
+            print("MySQL Error:", e)
+            db_connection.rollback()
     else:
         print("\nVehicle not found.\n")
         time.sleep(3)
-
 
 def check_vehicle():
-    # Implementation for checking vehicle details
-
     registration_number = input("\nEnter the vehicle registration number: \n")
-    
-    if registration_number in vehicle_records:
-        vehicle_details = vehicle_records[registration_number]
+
+    # Query the database to get vehicle details
+    query = """
+    SELECT c.OwnerName, pr.TimeIn, pr.TimeOut, pr.ParkingFee
+    FROM Customers c
+    LEFT JOIN ParkingRecords pr ON c.CustomerID = pr.CustomerID
+    WHERE pr.RegistrationNumber = %s
+    """
+    values = (registration_number,)
+
+    db_cursor.execute(query, values)
+    vehicle_info = db_cursor.fetchone()
+
+    if vehicle_info:
+        owner_name, time_in, time_out, parking_fee = vehicle_info
         print("\nVehicle found.\n")
         print("Details:")
-        print("  Vehicle owner: {}".format(vehicle_details["owner"]))  # Fix here
+        print("  Name of Owner: {}".format(owner_name))
         print("  Registration number: {}".format(registration_number))
-        print("  Time in: {}".format(vehicle_details["time_in"]))
-        print("  Time out: {}".format(vehicle_details.get("time_out", "Not released yet")))
-        print("  Parking fee: KES {}".format(vehicle_details.get("parking_fee", "Not calculated yet\n")))
-        time.sleep(3)
+        print("  Time in: {}".format(time_in))
+
+        if time_out is not None and parking_fee is not None:
+            print("  Time out: {}".format(time_out))
+            print("  Parking fee: KES {}".format(parking_fee))
+        else:
+            print("  Time out: Not yet released")
+            print("  Parking fee: Not yet charged\n")
+
+        time.sleep(5)
     else:
         print("\nVehicle not found.\n")
         time.sleep(3)
 
-def display_registered_vehicles():
-    # Implementation for displaying registered vehicles
+def delete_customer_information(OwnerName):
+    try:
+        # Delete records based on RegistrationNumber from the CustomerInformation table only
+        delete_customer_info_query = "DELETE FROM Customers WHERE OwnerName = %s"
+        
+        # Execute the DELETE statement
+        db_cursor.execute(delete_customer_info_query, (OwnerName,))
+        
+        # Commit the changes
+        db_connection.commit()
+        print("Customer information deleted successfully.")
+    except mysql.connector.Error as e:
+        print("MySQL Error:", e)
+        db_connection.rollback()
 
-    print("Registered Vehicles:")
-    for registration_number, vehicle_details in vehicle_records.items():
-        print("Registration number: {}".format(registration_number))
-        print("  Vehicle owner: {}".format(vehicle_details["owner"]))  # Fix here
-        print("  Time in: {}".format(vehicle_details["time_in"]))
-        print("  Time out: {}".format(vehicle_details.get("time_out", "Not released yet")))
-        print("  Parking fee: KES {}".format(vehicle_details.get("parking_fee", "Not calculated yet")))
-        print("-" * 20)
+def display_customer_information():
+    try:
+        query = """
+        SELECT c.CustomerID, c.OwnerName, pr.RegistrationNumber
+        FROM Customers c
+        JOIN ParkingRecords pr ON c.CustomerID = pr.CustomerID
+        """
+        db_cursor.execute(query)
+        customer_info = db_cursor.fetchall()
+
+        if customer_info:
+
+            print("Customer Information:")
+
+            for row in customer_info:
+                customer_id, owner_name, registration_number = row
+                print("Customer ID: {}".format(customer_id))
+                print("Name of Owner: {}".format(owner_name))
+                print("Registration number: {}".format(registration_number))
+                print("-" * 20)
+        else:
+            print("No customer information found.")
+            
+    except mysql.connector.Error as e:
+        print("MySQL Error:", e)
 
 def main():
     while True:
@@ -120,8 +159,9 @@ def main():
         print("\n1. Register vehicle\n")
         print("\n2. Release vehicle\n")
         print("\n3. Check vehicle\n")
-        print("\n4. Show all vehicles\n")
-        print("\n5. Exit\n")
+        print("\n4. Delete customer information\n")
+        print("\n5. Display Registered Customers Information\n")  # Option to display customer information
+        print("\n6. Exit\n")
         option = input("\nEnter your choice: \n")
 
         if option == "1":
@@ -131,10 +171,12 @@ def main():
         elif option == "3":
             check_vehicle()
         elif option == "4":
-            display_registered_vehicles()
-            time.sleep(5)
+            owner_name = input("\nEnter the owner's name to delete customer information: \n")
+            delete_customer_information(owner_name)  # Call the delete function with user input
         elif option == "5":
-            print("\nExiting...\n")
+            display_customer_information()  # Call the display function
+        elif option == "6":
+            print("\n./././././Exiting./././././\n")
             time.sleep(2)
             break
         else:
